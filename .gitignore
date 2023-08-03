@@ -1,3 +1,4 @@
 obj/
-disas
+disas.exe
 rom_emu.bin
+*.txt
