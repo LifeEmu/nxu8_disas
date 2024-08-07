@@ -14,7 +14,7 @@ uint16_t nxu8_read16(struct nxu8_decoder *decoder, uint32_t addr) {
 // Initialise a decoder from a file
 struct nxu8_decoder *nxu8_init_decoder_file(char *path) {
 	// Try and open the file
-	FILE *f = fopen(path, "r");
+	FILE *f = fopen(path, "rb");
 	if (f == NULL) {
 		printf("[-] Failed to open input file '%s'\n", path);
 		return NULL;
@@ -27,7 +27,7 @@ struct nxu8_decoder *nxu8_init_decoder_file(char *path) {
 
 	// Read the file into memory
 	uint8_t *buf = malloc(infile_sz);
-	fread(buf, infile_sz, 1, f);
+	fread(buf, 1, infile_sz, f);
 
 	fclose(f);
 
@@ -49,7 +49,7 @@ struct nxu8_decoder *nxu8_init_decoder(size_t buf_sz, uint8_t *buf) {
 	decoder->vct_table.reset_01 = nxu8_read16(decoder, addr); addr += 2;
 	decoder->vct_table.nmice = nxu8_read16(decoder, addr); addr += 2;
 	decoder->vct_table.nmi = nxu8_read16(decoder, addr); addr += 2;
-	for (int x = 0; x < 60; x++) { decoder->vct_table.mi[x] = nxu8_read16(decoder, addr); addr += 2; }
+	for (int x = 0; x < 59; x++) { decoder->vct_table.mi[x] = nxu8_read16(decoder, addr); addr += 2; }
 	for (int x = 0; x < 64; x++) { decoder->vct_table.swi[x] = nxu8_read16(decoder, addr); addr += 2; }
 
 	// Annotations
@@ -59,7 +59,7 @@ struct nxu8_decoder *nxu8_init_decoder(size_t buf_sz, uint8_t *buf) {
 }
 
 int annotate(struct nxu8_decoder *decoder, uint32_t addr) {
-
+	return 0;
 }
 
 int nxu8_anno(struct nxu8_decoder *decoder, uint32_t addr) {

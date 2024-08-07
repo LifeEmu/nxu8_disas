@@ -229,8 +229,8 @@ struct nxu8_instr *nxu8_decode_instr(struct nxu8_decoder *decoder, uint32_t addr
 			while (*fmt != '\0') {
 				switch (*fmt) {
 					case '%': {
-						uint16_t src;
-						uint8_t src_bits;
+						uint16_t src = 0;
+						uint8_t src_bits = 0;
 						fmt++;
 						switch (*fmt) {
 							case '0': {
