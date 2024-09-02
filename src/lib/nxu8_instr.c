@@ -10,7 +10,9 @@ struct nxu8_instr_mask instrs[] = {
 	{0x8001, 0x0f00, 0x08, 0x00f0, 0x04, "add\tr%0d,\tr%1d",          NULL},
 	{0x1000, 0x0f00, 0x08, 0x00ff, 0x00, "add\tr%0d,\t%1hh",          NULL},
 	{0xf006, 0x0e00, 0x08, 0x00e0, 0x04, "add\ter%0d,\ter%1d",        NULL},
-	{0xe080, 0x0e00, 0x08, 0x007f, 0x00, "add\ter%0d,\t%1hh",         NULL},
+
+	{0xe080, 0x0e00, 0x08, 0x007f, 0x00, "add\ter%0d,\t%1sh",         NULL},
+
 	{0x8006, 0x0f00, 0x08, 0x00f0, 0x04, "addc\tr%0d,\tr%1d",         NULL},
 	{0x6000, 0x0f00, 0x08, 0x00ff, 0x00, "addc\tr%0d,\t%1sh",         NULL},
 	{0x8002, 0x0f00, 0x08, 0x00f0, 0x04, "and\tr%0d,\tr%1d",          NULL},
@@ -20,7 +22,9 @@ struct nxu8_instr_mask instrs[] = {
 	{0x8005, 0x0f00, 0x08, 0x00f0, 0x04, "cmpc\tr%0d,\tr%1d",         NULL},
 	{0x5000, 0x0f00, 0x08, 0x00ff, 0x00, "cmpc\tr%0d,\t%1hh",         NULL},
 	{0xf005, 0x0e00, 0x08, 0x00e0, 0x04, "mov\ter%0d,\ter%1d",        NULL},
-	{0xe000, 0x0e00, 0x08, 0x00ff, 0x00, "mov\ter%0d,\t%1hh",         NULL},
+
+	{0xe000, 0x0e00, 0x08, 0x007f, 0x00, "mov\ter%0d,\t%1sh",         NULL},
+
 	{0x8000, 0x0f00, 0x08, 0x00f0, 0x04, "mov\tr%0d,\tr%1d",          NULL},
 	{0x0000, 0x0f00, 0x08, 0x00ff, 0x00, "mov\tr%0d,\t%1hh",          NULL},
 	{0x8003, 0x0f00, 0x08, 0x00f0, 0x04, "or\tr%0d,\tr%1d",           NULL},
@@ -170,9 +174,9 @@ struct nxu8_instr_mask instrs[] = {
 	{0xe500, 0x003f, 0x00, 0x0000, 0x00, "swi\t%1hh",                NULL},
 	{0xffff, 0x0000, 0x00, 0x0000, 0x00, "brk",                     NULL},
 
-	{0xf000, 0x0f00, 0x08, 0x0000, 0x00, "b\t%0n%2hh",              },
+	{0xf000, 0x0f00, 0x08, 0x0000, 0x00, "b\t%0n%2Ah",              },
 	{0xf002, 0x00f0, 0x04, 0x0000, 0x00, "b\ter%0d",                  NULL},
-	{0xf001, 0x0f00, 0x08, 0x0000, 0x00, "bl\t%0n%2hh",             },
+	{0xf001, 0x0f00, 0x08, 0x0000, 0x00, "bl\t%0n%2Ah",             },
 	{0xf003, 0x00f0, 0x04, 0x0000, 0x00, "bl\ter%0d",                 NULL},
 
 	{0xf004, 0x0e00, 0x08, 0x00f0, 0x04, "mul\ter%0d,\tr%1d",         NULL},
@@ -234,12 +238,12 @@ struct nxu8_instr *nxu8_decode_instr(struct nxu8_decoder *decoder, uint32_t addr
 						fmt++;
 						switch (*fmt) {
 							case '0': {
-								src_bits = __builtin_clz(instrs[x].arg0_mask) - instrs[x].arg0_shift - 17;
+								src_bits = 32 - __builtin_clz(instrs[x].arg0_mask) - instrs[x].arg0_shift;
 								src = (instr_fw & instrs[x].arg0_mask) >> instrs[x].arg0_shift;
 								break;
 							}
 							case '1': {
-								src_bits = __builtin_clz(instrs[x].arg1_mask) - instrs[x].arg1_shift;
+								src_bits = 32 - __builtin_clz(instrs[x].arg1_mask) - instrs[x].arg1_shift;
 								src = (instr_fw & instrs[x].arg1_mask) >> instrs[x].arg1_shift;
 								break;
 							}
@@ -261,18 +265,24 @@ struct nxu8_instr *nxu8_decode_instr(struct nxu8_decoder *decoder, uint32_t addr
 							case 'r': {
 								int count = 0;
 								if (src & 8) { head += sprintf(head, "lr"); count++; }
-								if (src & 4) { head += sprintf(head, "%sepsw", count != 0 ? ", " : ""); count++; }
+								if (src & 4) { head += sprintf(head, "%s%s", count != 0 ? ", " : "", *fmt == 'r' ? "epsw" : "psw"); count++; }
 								if (src & 2) { head += sprintf(head, "%s%s", count != 0 ? ", " : "", *fmt == 'r' ? "elr" : "pc"); count++; }
 								if (src & 1) { head += sprintf(head, "%sea", count != 0 ? ", " : ""); count++; }
 								break;
 							}
+
+							case 'A':
+								// `B/BL Cadr`
+								head += sprintf(head, "%04X", src);
+								break;
+
 							case 'h': {
 								head += sprintf(head, "%02X", src);
 								break;
 							}
 							case 's': {
 								// Sign extend src
-								src |= (src >> src_bits) ? (0xFFFF << src_bits) : 0;
+								src |= (src >> (src_bits - 1)) ? (0xFFFF << src_bits) : 0;
 								head += sprintf(head, "%s%02X", src & 0x8000 ? "-" : "+", src & 0x8000 ? (src ^ 0xFFFF) + 1 : src);
 								break;
 							}
@@ -288,7 +298,7 @@ struct nxu8_instr *nxu8_decode_instr(struct nxu8_decoder *decoder, uint32_t addr
 								break;
 							case 'o':	// 'o' is for "offset"
 								// used in relative jumps
-								src |= (src >> src_bits) ? (0xFFFF << src_bits) : 0;
+								src |= (src >> (src_bits - 1)) ? (0xFFFF << src_bits) : 0;
 								src <<= 1;
 								head += sprintf(head, "%s%02X", src & 0x8000 ? "-" : "+", src & 0x8000 ? (src ^ 0xFFFF) + 1 : src);
 								break;

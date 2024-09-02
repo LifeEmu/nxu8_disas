@@ -12,7 +12,7 @@ An nX-U8/100 disassembler written in C.
 	- `lea Dadr` has brackets now: `lea [FFFCh]`
 
 ## Known bugs
-- `#imm7` does not show sign properly (`add er0, F0h` actually adds `FFF0h`(`-10h`) to `ER0`)
+- ~~`#imm7` does not show sign properly (`add er0, F0h` actually adds `FFF0h`(`-10h`) to `ER0`)~~
 - `extbw` shows the register twice (`extbw er0, er0`)
 
 ## Copying
